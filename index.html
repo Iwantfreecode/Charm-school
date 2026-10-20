@@ -149,7 +149,7 @@ h2 { margin: 28px 0 8px; font: 700 18px var(--font); }
     if (selfFirst) {
       var addedOn = new Date(selfAdded).toLocaleDateString(undefined, { day: "numeric", month: "long" });
       notice.hidden = false;
-      notice.innerHTML = nice(selfFirst) + " to " + nice(selfLast) + " entered on " + addedOn + " (self-reported). Logged live from " + addedOn + " on.";
+      notice.innerHTML = nice(selfFirst) + " to " + nice(selfLast) + " was tracked in another app and imported on " + addedOn + ". Logged here live from " + addedOn + " on.";
     } else { notice.hidden = true; }
 
     var lead = (parse(days[0]).getDay() + 6) % 7, chars = [], i, rows = [];
@@ -214,7 +214,7 @@ h2 { margin: 28px 0 8px; font: 700 18px var(--font); }
     render();
   };
   document.getElementById("backfillBtn").onclick = function () {
-    if (!confirm("Import every day from 26 Aug up to yesterday as done? They will be recorded as entered today, after the fact (self-reported). This can only be done once.")) return;
+    if (!confirm("Import every day from 26 Aug up to yesterday as done? They will be recorded as imported today from the app you tracked them in. This can only be done once.")) return;
     api("/api/backfill", { method: "POST", body: "{}" }).then(refresh).catch(function (err) {
       if (err.status === 401) { pin = ""; try { localStorage.removeItem(PIN_KEY); } catch (x) {} }
       alert(err.message); refresh();

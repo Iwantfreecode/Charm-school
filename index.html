@@ -62,18 +62,16 @@
       <span style="--c:var(--work)">Workout only</span>
       <span style="--c:var(--none)">Neither</span>
     </div>
-    <p class="note">Tap a square to flip that day between "both done" and "not done".</p>
+    <p class="note">Tap today's square to flip it between "both done" and "not done".</p>
   </section>
 
   <section class="card">
     <h2>Daily log</h2>
     <div class="toolbar">
-      <button class="btn" id="markAll">Mark every day done</button>
-      <button class="btn" id="clearAll">Clear all</button>
       <button class="btn" id="exportBtn">Download data (JSON)</button>
     </div>
     <div class="list" id="list"></div>
-    <p class="note">Data is saved in this browser. Untick any day you missed so the numbers stay accurate.</p>
+    <p class="note">Only today can be ticked. Past days are locked 🔒. A new row appears automatically each day. Data is saved in this browser.</p>
   </section>
 </main>
 
@@ -98,11 +96,19 @@
   function load() {
     try { data = JSON.parse(localStorage.getItem(KEY)); } catch (e) { data = null; }
     if (!data || typeof data !== "object") data = {};
-    var seeded = false;
-    // First run: every day since the start date begins as "both done".
     var first = localStorage.getItem(KEY) === null;
+    ensureDays(first);
+  }
+  function todayKey() { return fmt(new Date()); }
+  // Adds any missing days. On the very first run, days before today start as "both done";
+  // today and every future day start unticked and can only be ticked on the day itself.
+  function ensureDays(first) {
+    var seeded = false, t = todayKey();
     allDays().forEach(function (k) {
-      if (!data[k]) { data[k] = first ? { study: true, work: true } : (data[k] || { study: false, work: false }); seeded = true; }
+      if (!data[k]) {
+        data[k] = (first && k < t) ? { study: true, work: true } : { study: false, work: false };
+        seeded = true;
+      }
     });
     if (seeded) save();
   }
@@ -160,18 +166,20 @@
 
     // list, newest first
     document.getElementById("list").innerHTML = days.slice().reverse().map(function (k) {
-      var v = data[k] || {}, d = parse(k);
+      var v = data[k] || {}, d = parse(k), isToday = k === todayKey();
+      var dis = isToday ? "" : " disabled";
       return '<div class="row"><div class="date">' +
-        d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
+        d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + (isToday ? " · Today" : " 🔒") +
         '<small>' + d.toLocaleDateString(undefined, { weekday: "long" }) + '</small></div>' +
-        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="study"' + (v.study ? " checked" : "") + '> Study ' + STUDY_MIN + 'm</label>' +
-        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="work"' + (v.work ? " checked" : "") + '> Workout ' + WORK_MIN + 'm</label></div>';
+        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="study"' + (v.study ? " checked" : "") + dis + '> Study ' + STUDY_MIN + 'm</label>' +
+        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="work"' + (v.work ? " checked" : "") + dis + '> Workout ' + WORK_MIN + 'm</label></div>';
     }).join("");
   }
 
   document.addEventListener("change", function (e) {
     var t = e.target;
     if (t.matches && t.matches('input[type="checkbox"][data-k]')) {
+      if (t.dataset.k !== todayKey()) { render(); return; }
       data[t.dataset.k] = data[t.dataset.k] || {};
       data[t.dataset.k][t.dataset.f] = t.checked;
       save(); render();
@@ -179,20 +187,11 @@
   });
   document.getElementById("grid").addEventListener("click", function (e) {
     var k = e.target.dataset && e.target.dataset.k;
-    if (!k) return;
+    if (!k || k !== todayKey()) return;
     var done = state(k) === "both";
     data[k] = { study: !done, work: !done };
     save(); render();
   });
-  document.getElementById("markAll").onclick = function () {
-    allDays().forEach(function (k) { data[k] = { study: true, work: true }; });
-    save(); render();
-  };
-  document.getElementById("clearAll").onclick = function () {
-    if (!confirm("Clear every day?")) return;
-    allDays().forEach(function (k) { data[k] = { study: false, work: false }; });
-    save(); render();
-  };
   document.getElementById("exportBtn").onclick = function () {
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     var a = document.createElement("a");
@@ -200,6 +199,14 @@
   };
 
   load(); render();
+  // When midnight passes, add the new day and lock yesterday.
+  var shownDay = todayKey();
+  setInterval(function () {
+    if (todayKey() !== shownDay) { shownDay = todayKey(); ensureDays(false); render(); }
+  }, 30000);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && todayKey() !== shownDay) { shownDay = todayKey(); ensureDays(false); render(); }
+  });
 })();
 </script>
 </body>

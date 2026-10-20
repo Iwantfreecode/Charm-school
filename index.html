@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Routine Tracker</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #e4e2da;
+    --study: #2f6fed; --work: #e8590c; --both: #1f9d55; --none: #e9e7df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --card: #1e1e1c; --ink: #f1efe8; --muted: #9b9990; --line: #302f2b; --none: #2a2927; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stat { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .stat b { display: block; font-size: 1.5rem; }
+  .stat span { color: var(--muted); font-size: .85rem; }
+  .bar { height: 10px; background: var(--none); border-radius: 99px; overflow: hidden; margin-top: 12px; }
+  .bar i { display: block; height: 100%; background: var(--both); width: 0; transition: width .3s; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 18px); gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+  .cell { width: 18px; height: 18px; border-radius: 4px; background: var(--none); border: 0; padding: 0; cursor: pointer; }
+  .cell.study { background: var(--study); } .cell.work { background: var(--work); } .cell.both { background: var(--both); }
+  .cell.blank { visibility: hidden; cursor: default; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.btn { font: inherit; font-size: .85rem; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button.btn:hover { border-color: var(--muted); }
+  .row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .date { font-weight: 600; } .date small { display: block; color: var(--muted); font-weight: 400; }
+  label.chk { display: flex; align-items: center; gap: 6px; font-size: .9rem; cursor: pointer; user-select: none; }
+  label.chk input { width: 18px; height: 18px; accent-color: var(--both); }
+  .list { max-height: 520px; overflow-y: auto; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Daily Routine Tracker</h1>
+  <p class="sub">15 min study + 15 min workout, every day since <span id="startLabel"></span></p>
+
+  <section class="card">
+    <div class="stats" id="stats"></div>
+    <div class="bar"><i id="barFill"></i></div>
+  </section>
+
+  <section class="card">
+    <h2>Progress calendar</h2>
+    <div class="grid" id="grid" aria-label="Calendar of days"></div>
+    <div class="legend">
+      <span style="--c:var(--both)">Both done</span>
+      <span style="--c:var(--study)">Study only</span>
+      <span style="--c:var(--work)">Workout only</span>
+      <span style="--c:var(--none)">Neither</span>
+    </div>
+    <p class="note">Tap a square to flip that day between "both done" and "not done".</p>
+  </section>
+
+  <section class="card">
+    <h2>Daily log</h2>
+    <div class="toolbar">
+      <button class="btn" id="markAll">Mark every day done</button>
+      <button class="btn" id="clearAll">Clear all</button>
+      <button class="btn" id="exportBtn">Download data (JSON)</button>
+    </div>
+    <div class="list" id="list"></div>
+    <p class="note">Data is saved in this browser. Untick any day you missed so the numbers stay accurate.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var START = "2026-08-26";
+  var STUDY_MIN = 15, WORK_MIN = 15;
+  var KEY = "routine-tracker-v1";
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fmt(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parse(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+
+  function allDays() {
+    var out = [], d = parse(START), end = new Date();
+    end = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    while (d <= end) { out.push(fmt(d)); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); }
+    return out;
+  }
+
+  var data;
+  function load() {
+    try { data = JSON.parse(localStorage.getItem(KEY)); } catch (e) { data = null; }
+    if (!data || typeof data !== "object") data = {};
+    var seeded = false;
+    // First run: every day since the start date begins as "both done".
+    var first = localStorage.getItem(KEY) === null;
+    allDays().forEach(function (k) {
+      if (!data[k]) { data[k] = first ? { study: true, work: true } : (data[k] || { study: false, work: false }); seeded = true; }
+    });
+    if (seeded) save();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+
+  function state(k) {
+    var v = data[k] || {};
+    return v.study && v.work ? "both" : v.study ? "study" : v.work ? "work" : "none";
+  }
+
+  function streaks(days) {
+    var cur = 0, best = 0, run = 0;
+    days.forEach(function (k) { if (state(k) === "both") { run++; if (run > best) best = run; } else run = 0; });
+    for (var i = days.length - 1; i >= 0; i--) { if (state(days[i]) === "both") cur++; else break; }
+    return { cur: cur, best: best };
+  }
+
+  function render() {
+    var days = allDays();
+    var both = 0, sMin = 0, wMin = 0;
+    days.forEach(function (k) {
+      var v = data[k] || {};
+      if (v.study) sMin += STUDY_MIN;
+      if (v.work) wMin += WORK_MIN;
+      if (v.study && v.work) both++;
+    });
+    var st = streaks(days), pct = days.length ? Math.round(both / days.length * 100) : 0;
+
+    document.getElementById("startLabel").textContent =
+      parse(START).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+
+    var items = [
+      [days.length, "days tracked"],
+      [both + " / " + days.length, "days with both done"],
+      [pct + "%", "completion"],
+      [st.cur, "current streak"],
+      [st.best, "longest streak"],
+      [(sMin / 60).toFixed(1) + " h", "study (" + sMin + " min)"],
+      [(wMin / 60).toFixed(1) + " h", "workout (" + wMin + " min)"]
+    ];
+    document.getElementById("stats").innerHTML = items.map(function (i) {
+      return '<div class="stat"><b>' + i[0] + '</b><span>' + i[1] + '</span></div>';
+    }).join("");
+    document.getElementById("barFill").style.width = pct + "%";
+
+    // calendar grid: columns are weeks (Mon-Sun)
+    var grid = document.getElementById("grid");
+    var lead = (parse(days[0]).getDay() + 6) % 7, html = "";
+    for (var b = 0; b < lead; b++) html += '<span class="cell blank"></span>';
+    days.forEach(function (k) {
+      var label = parse(k).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+      html += '<button class="cell ' + state(k) + '" data-k="' + k + '" title="' + label + '" aria-label="' + label + ': ' + state(k) + '"></button>';
+    });
+    grid.innerHTML = html;
+
+    // list, newest first
+    document.getElementById("list").innerHTML = days.slice().reverse().map(function (k) {
+      var v = data[k] || {}, d = parse(k);
+      return '<div class="row"><div class="date">' +
+        d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
+        '<small>' + d.toLocaleDateString(undefined, { weekday: "long" }) + '</small></div>' +
+        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="study"' + (v.study ? " checked" : "") + '> Study ' + STUDY_MIN + 'm</label>' +
+        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="work"' + (v.work ? " checked" : "") + '> Workout ' + WORK_MIN + 'm</label></div>';
+    }).join("");
+  }
+
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.matches && t.matches('input[type="checkbox"][data-k]')) {
+      data[t.dataset.k] = data[t.dataset.k] || {};
+      data[t.dataset.k][t.dataset.f] = t.checked;
+      save(); render();
+    }
+  });
+  document.getElementById("grid").addEventListener("click", function (e) {
+    var k = e.target.dataset && e.target.dataset.k;
+    if (!k) return;
+    var done = state(k) === "both";
+    data[k] = { study: !done, work: !done };
+    save(); render();
+  });
+  document.getElementById("markAll").onclick = function () {
+    allDays().forEach(function (k) { data[k] = { study: true, work: true }; });
+    save(); render();
+  };
+  document.getElementById("clearAll").onclick = function () {
+    if (!confirm("Clear every day?")) return;
+    allDays().forEach(function (k) { data[k] = { study: false, work: false }; });
+    save(); render();
+  };
+  document.getElementById("exportBtn").onclick = function () {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "routine-data.json"; a.click();
+  };
+
+  load(); render();
+})();
+</script>
+</body>
+</html>

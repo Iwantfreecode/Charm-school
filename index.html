@@ -5,98 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daily Routine Tracker</title>
 <style>
-  :root {
-    --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #e4e2da;
-    --study: #2f6fed; --work: #e8590c; --both: #1f9d55; --none: #e9e7df;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #151514; --card: #1e1e1c; --ink: #f1efe8; --muted: #9b9990; --line: #302f2b; --none: #2a2927; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 1.6rem; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-  .stat { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
-  .stat b { display: block; font-size: 1.5rem; }
-  .stat span { color: var(--muted); font-size: .85rem; }
-  .bar { height: 10px; background: var(--none); border-radius: 99px; overflow: hidden; margin-top: 12px; }
-  .bar i { display: block; height: 100%; background: var(--both); width: 0; transition: width .3s; }
-  h2 { font-size: 1.05rem; margin: 0 0 12px; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); margin-top: 10px; }
-  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
-  .legend span.bf::before { background: repeating-linear-gradient(45deg, var(--both) 0 3px, transparent 3px 6px), var(--none); }
-  .grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 18px); gap: 4px; overflow-x: auto; padding-bottom: 4px; }
-  .cell { width: 18px; height: 18px; border-radius: 4px; background: var(--none); border: 0; padding: 0; cursor: default; }
-  .cell.study { background: var(--study); } .cell.work { background: var(--work); } .cell.both { background: var(--both); }
-  .cell.bf { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.45) 0 3px, transparent 3px 6px); }
-  .cell.blank { visibility: hidden; }
-  .cell.today { outline: 2px solid var(--ink); outline-offset: 1px; }
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
-  button.btn { font: inherit; font-size: .85rem; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
-  button.btn:hover { border-color: var(--muted); }
-  .badge { font-size: .8rem; color: var(--muted); }
-  .row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
-  .row:first-child { border-top: 0; }
-  .date { font-weight: 600; } .date small { display: block; color: var(--muted); font-weight: 400; }
-  label.chk { display: flex; align-items: center; gap: 6px; font-size: .9rem; user-select: none; }
-  label.chk input { width: 18px; height: 18px; accent-color: var(--both); }
-  .list { max-height: 520px; overflow-y: auto; }
-  .note { color: var(--muted); font-size: .8rem; margin-top: 8px; }
-  .msg { padding: 12px; border-radius: 10px; background: var(--none); font-size: .9rem; }
+  :root { --bg: #ffffff; --ink: #111111; --muted: #666666; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111111; --ink: #e8e8e8; --muted: #999999; } }
+  html { background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width: 680px; margin: 0 auto; padding: 20px 14px 60px; }
+  h1 { font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: .04em; }
+  hr { border: 0; border-top: 1px dashed var(--muted); margin: 16px 0; }
+  pre { margin: 0; font: inherit; white-space: pre-wrap; }
+  .muted { color: var(--muted); }
+  button { font: inherit; background: none; border: 0; padding: 0; margin-right: 14px; color: var(--ink); text-decoration: underline; cursor: pointer; }
+  button[hidden] { display: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 0 14px; padding: 4px 0; }
+  .row .d { width: 11ch; } .row .w { width: 4ch; } .row .s { width: 10ch; }
+  .row label { white-space: nowrap; cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--ink); width: 15px; height: 15px; vertical-align: -2px; margin: 0 4px 0 0; }
+  .list { max-height: 60vh; overflow-y: auto; }
+  #status { padding: 8px 0; }
 </style>
 </head>
 <body>
 <main>
   <h1>Daily Routine Tracker</h1>
-  <p class="sub">15 min study + 15 min workout, every day since <span id="startLabel"></span></p>
-  <div id="status" class="msg" hidden></div>
+  <div class="muted">15 min study + 15 min workout, every day since <span id="startLabel"></span></div>
+  <div id="status" hidden></div>
 
-  <section class="card">
-    <div class="stats" id="stats"></div>
-    <div class="bar"><i id="barFill"></i></div>
-  </section>
+  <hr>
+  <pre id="stats">loading...</pre>
 
-  <section class="card">
-    <h2>Progress calendar</h2>
-    <div class="grid" id="grid" aria-label="Calendar of days"></div>
-    <div class="legend">
-      <span style="--c:var(--both)">Logged live, both done</span>
-      <span class="bf">Backfilled (self-reported)</span>
-      <span style="--c:var(--study)">Study only</span>
-      <span style="--c:var(--work)">Workout only</span>
-      <span style="--c:var(--none)">Nothing logged</span>
-    </div>
-  </section>
+  <hr>
+  <div>CALENDAR <span class="muted">(rows are weeks, Mon to Sun, last character = today)</span></div>
+  <pre id="grid"></pre>
+  <div class="muted"># logged live, both done &nbsp; + backfilled (self-reported), both done<br>s study only &nbsp; w workout only &nbsp; . nothing logged</div>
 
-  <section class="card">
-    <h2>Daily log</h2>
-    <div class="toolbar">
-      <button class="btn" id="unlockBtn">Unlock editing</button>
-      <button class="btn" id="backfillBtn" hidden>Import 26 Aug onward (one time)</button>
-      <button class="btn" id="exportBtn">Download data (JSON)</button>
-      <span class="badge" id="modeBadge"></span>
-    </div>
-    <div class="list" id="list"></div>
-    <p class="note">The server decides what "today" is (Bangkok time) and only accepts changes for today. Past days are locked and cannot be edited by anyone. Each entry shows whether it was logged live or backfilled.</p>
-  </section>
+  <hr>
+  <div>
+    <button id="unlockBtn">[ unlock editing ]</button><button id="backfillBtn" hidden>[ import 26 Aug onward, one time ]</button><button id="exportBtn">[ download data ]</button>
+  </div>
+  <div class="muted" id="modeBadge"></div>
+  <br>
+  <div>LOG <span class="muted">(newest first)</span></div>
+  <div class="list" id="list"></div>
+
+  <hr>
+  <div class="muted">Only today can be changed. The server decides what today is (Bangkok time). Past days are locked. Each day shows whether it was logged live or backfilled.</div>
 </main>
 
 <script>
 (function () {
-  // After deploying the Cloudflare Worker, paste its URL here (no trailing slash).
   var WORKER_URL = "https://charm-school.freewifi-exe.workers.dev";
   var STUDY_MIN = 15, WORK_MIN = 15;
   var PIN_KEY = "tracker-pin";
 
-  var state = null; // { today, start, backfillDone, days }
+  var state = null;
   var pin = ""; try { pin = localStorage.getItem(PIN_KEY) || ""; } catch (e) {}
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fmt(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function parse(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function padR(s, n) { s = String(s); while (s.length < n) s += " "; return s; }
   function daysList() {
     var out = [], d = parse(state.start), end = parse(state.today);
     while (d <= end) { out.push(fmt(d)); d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); }
@@ -108,10 +76,7 @@
     if (!e) return "none";
     return e.study && e.work ? "both" : e.study ? "study" : e.work ? "work" : "none";
   }
-  function setStatus(text) {
-    var el = document.getElementById("status");
-    el.hidden = !text; el.textContent = text || "";
-  }
+  function setStatus(t) { var el = document.getElementById("status"); el.hidden = !t; el.textContent = t || ""; }
 
   function api(path, opts) {
     opts = opts || {};
@@ -120,9 +85,7 @@
       return r.json().then(function (j) { if (!r.ok) throw Object.assign(new Error(j.error || "Request failed"), { status: r.status }); return j; });
     });
   }
-
   function refresh() {
-    if (!WORKER_URL) { setStatus("Setup needed: deploy the Cloudflare Worker (see README) and paste its URL into WORKER_URL in index.html."); return Promise.resolve(); }
     return api("/api/days").then(function (s) { state = s; setStatus(""); render(); })
       .catch(function () { setStatus("Could not reach the server. Try again in a moment."); });
   }
@@ -147,45 +110,49 @@
 
     document.getElementById("startLabel").textContent =
       parse(state.start).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
-    var items = [
-      [days.length, "days tracked"],
-      [both + " / " + days.length, "days with both done"],
-      [pct + "%", "completion"],
-      [live, "days logged live"],
-      [bf, "days backfilled"],
-      [st.cur, "current streak"],
-      [st.best, "longest streak"],
-      [(sMin / 60).toFixed(1) + " h", "study (" + sMin + " min)"],
-      [(wMin / 60).toFixed(1) + " h", "workout (" + wMin + " min)"]
-    ];
-    document.getElementById("stats").innerHTML = items.map(function (i) {
-      return '<div class="stat"><b>' + i[0] + '</b><span>' + i[1] + '</span></div>';
-    }).join("");
-    document.getElementById("barFill").style.width = pct + "%";
 
-    var lead = (parse(days[0]).getDay() + 6) % 7, html = "", b;
-    for (b = 0; b < lead; b++) html += '<span class="cell blank"></span>';
+    var barLen = 24, filled = Math.round(pct / 100 * barLen);
+    var bar = "[" + new Array(filled + 1).join("#") + new Array(barLen - filled + 1).join("-") + "] " + pct + "%";
+    document.getElementById("stats").textContent = [
+      padR("days tracked", 20) + days.length,
+      padR("both done", 20) + both + " / " + days.length,
+      padR("logged live", 20) + live,
+      padR("backfilled", 20) + bf,
+      padR("current streak", 20) + st.cur,
+      padR("longest streak", 20) + st.best,
+      padR("study", 20) + (sMin / 60).toFixed(1) + " h (" + sMin + " min)",
+      padR("workout", 20) + (wMin / 60).toFixed(1) + " h (" + wMin + " min)",
+      "",
+      bar
+    ].join("\n");
+
+    var lead = (parse(days[0]).getDay() + 6) % 7, chars = [], i, rows = [], line;
+    for (i = 0; i < lead; i++) chars.push(" ");
     days.forEach(function (k) {
-      var e = entry(k), label = parse(k).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
-      var cls = kind(k) + (e && e.source === "backfill" ? " bf" : "") + (k === state.today ? " today" : "");
-      html += '<span class="cell ' + cls + '" title="' + label + '"></span>';
+      var e = entry(k), t = kind(k);
+      chars.push(t === "both" ? (e.source === "backfill" ? "+" : "#") : t === "study" ? "s" : t === "work" ? "w" : ".");
     });
-    document.getElementById("grid").innerHTML = html;
+    for (i = 0; i < chars.length; i += 7) {
+      var dayIdx = i - lead, label = dayIdx >= 0 ? parse(days[dayIdx]).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : parse(days[0]).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+      line = padR(label, 8) + chars.slice(i, i + 7).join(" ");
+      rows.push(line);
+    }
+    document.getElementById("grid").textContent = rows.join("\n");
 
     var canEdit = !!pin;
     document.getElementById("list").innerHTML = days.slice().reverse().map(function (k) {
       var e = entry(k) || {}, d = parse(k), isToday = k === state.today;
       var dis = (isToday && canEdit) ? "" : " disabled";
       var how = e.loggedAt ? (e.source === "backfill" ? "backfilled" : "logged " + new Date(e.loggedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) : "nothing logged";
-      return '<div class="row"><div class="date">' +
-        d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + (isToday ? " · Today" : " 🔒") +
-        '<small>' + d.toLocaleDateString(undefined, { weekday: "long" }) + ' · ' + how + '</small></div>' +
-        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="study"' + (e.study ? " checked" : "") + dis + '> Study ' + STUDY_MIN + 'm</label>' +
-        '<label class="chk"><input type="checkbox" data-k="' + k + '" data-f="work"' + (e.work ? " checked" : "") + dis + '> Workout ' + WORK_MIN + 'm</label></div>';
+      return '<div class="row"><span class="d">' + esc(k) + '</span><span class="w">' + d.toLocaleDateString(undefined, { weekday: "short" }) + '</span>' +
+        '<span class="s">' + (isToday ? "TODAY" : "locked") + '</span>' +
+        '<label><input type="checkbox" data-k="' + k + '" data-f="study"' + (e.study ? " checked" : "") + dis + '>study ' + STUDY_MIN + 'm</label>' +
+        '<label><input type="checkbox" data-k="' + k + '" data-f="work"' + (e.work ? " checked" : "") + dis + '>workout ' + WORK_MIN + 'm</label>' +
+        '<span class="muted">' + esc(how) + '</span></div>';
     }).join("");
 
-    document.getElementById("unlockBtn").textContent = canEdit ? "Lock editing" : "Unlock editing";
-    document.getElementById("modeBadge").textContent = canEdit ? "Editing today" : "View only";
+    document.getElementById("unlockBtn").textContent = canEdit ? "[ lock editing ]" : "[ unlock editing ]";
+    document.getElementById("modeBadge").textContent = canEdit ? "mode: editing today" : "mode: view only";
     document.getElementById("backfillBtn").hidden = !(canEdit && !state.backfillDone);
   }
 
@@ -203,7 +170,6 @@
         refresh();
       });
   });
-
   document.getElementById("unlockBtn").onclick = function () {
     if (pin) { pin = ""; try { localStorage.removeItem(PIN_KEY); } catch (e) {} render(); return; }
     var p = prompt("Enter your edit PIN");
@@ -212,7 +178,7 @@
     render();
   };
   document.getElementById("backfillBtn").onclick = function () {
-    if (!confirm("Import every day from 26 Aug up to yesterday as 'both done'? These will be marked as backfilled (self-reported) and can only be done once.")) return;
+    if (!confirm("Import every day from 26 Aug up to yesterday as 'both done'? These will be marked as backfilled (self-reported) and this can only be done once.")) return;
     api("/api/backfill", { method: "POST", body: "{}" }).then(refresh).catch(function (err) {
       if (err.status === 401) { pin = ""; try { localStorage.removeItem(PIN_KEY); } catch (x) {} }
       alert(err.message); refresh();

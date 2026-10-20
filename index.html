@@ -2,54 +2,87 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Daily Routine Tracker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Daily Routine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap">
 <style>
-  :root { --bg: #ffffff; --ink: #111111; --muted: #666666; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #111111; --ink: #e8e8e8; --muted: #999999; } }
-  html { background: var(--bg); }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  main { max-width: 680px; margin: 0 auto; padding: 20px 14px 60px; }
-  h1 { font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: .04em; }
-  hr { border: 0; border-top: 1px dashed var(--muted); margin: 16px 0; }
-  pre { margin: 0; font: inherit; white-space: pre-wrap; }
-  .muted { color: var(--muted); }
-  button { font: inherit; background: none; border: 0; padding: 0; margin-right: 14px; color: var(--ink); text-decoration: underline; cursor: pointer; }
-  button[hidden] { display: none; }
-  .row { display: flex; flex-wrap: wrap; gap: 0 14px; padding: 4px 0; }
-  .row .d { width: 11ch; } .row .w { width: 4ch; } .row .s { width: 10ch; }
-  .row label { white-space: nowrap; cursor: pointer; }
-  input[type=checkbox] { accent-color: var(--ink); width: 15px; height: 15px; vertical-align: -2px; margin: 0 4px 0 0; }
-  .list { max-height: 60vh; overflow-y: auto; }
-  #status { padding: 8px 0; }
+/* Same look as the wishlist: a typed list, one left-aligned column, no cards. */
+:root {
+  --bg: #FFFFFF; --ink: #1A1A1A; --muted: #6A6A6A; --line: #B9B9B9;
+  --mark: #FF7EC0; --mark-ink: #1A1A1A; --link: #C8246F; --pink: #FF7EC0;
+  --font: 'Courier Prime', 'Courier New', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #141414; --ink: #EDEDED; --muted: #9A9A9A; --line: #4A4A4A; --mark: #FF8FCB; --mark-ink: #141414; --link: #FF8FCB; --pink: #FF8FCB; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font); }
+[hidden] { display: none !important; }
+.wrap { max-width: 42rem; margin-inline: auto; padding: 32px 16px 96px; }
+button { font: inherit; color: inherit; border-radius: 0; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.title { margin: 0; padding: 0 0 8px; font: 700 clamp(26px, 7vw, 38px)/1.15 var(--font); border-bottom: 2px solid var(--ink); }
+.summary { margin: 12px 0 0; }
+.summary strong { font-weight: 700; }
+.sub { margin: 6px 0 0; color: var(--muted); }
+
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 20px; }
+.btn { border: 1px solid var(--ink); background: var(--bg); color: var(--ink); padding: 5px 12px; cursor: pointer; }
+.btn:hover { background: var(--ink); color: var(--bg); }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.mode { color: var(--muted); }
+.status { min-height: 1.55em; margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+
+.notice { margin: 14px 0 0; padding: 14px 16px; background: var(--pink); color: #1A1A1A; }
+.notice p { margin: 0; }
+.notice p + p { margin-top: 8px; }
+
+h2 { margin: 28px 0 8px; font: 700 18px var(--font); }
+.cal { margin: 0; font: inherit; white-space: pre; overflow-x: auto; }
+.legend { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+.list { display: grid; gap: 14px; list-style: none; margin: 14px 0 0; padding: 0; }
+.row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.name { font-weight: 700; font-size: 19px; }
+.row.today .name { background: var(--mark); color: var(--mark-ink); padding: 0 4px; }
+.row:not(.today) .name { font-weight: 400; color: var(--muted); }
+.lead { flex: 1 1 12px; min-width: 12px; border-bottom: 1px dotted var(--muted); transform: translateY(-4px); }
+.boxes { display: flex; gap: 14px; white-space: nowrap; }
+.box { border: 0; background: none; padding: 0; white-space: pre; line-height: inherit; cursor: default; }
+.box:not(:disabled) { cursor: pointer; }
+.box:not(:disabled):hover { background: var(--mark); color: var(--mark-ink); }
+.row:not(.today) .box { color: var(--muted); }
+.disclaimer { margin: 48px 0 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 480px) { .boxes { flex-basis: 100%; } .lead { display: none; } }
 </style>
 </head>
 <body>
-<main>
-  <h1>Daily Routine Tracker</h1>
-  <div class="muted">15 min study + 15 min workout, every day since <span id="startLabel"></span></div>
-  <div id="status" hidden></div>
+<div class="wrap">
+  <h1 class="title">Daily Routine</h1>
+  <p class="summary" id="summary">loading...</p>
+  <p class="sub">15 min study + 15 min workout, every day since <span id="startLabel"></span></p>
+  <p class="status" id="status" hidden></p>
 
-  <hr>
-  <pre id="stats">loading...</pre>
-
-  <hr>
-  <div>CALENDAR <span class="muted">(rows are weeks, Mon to Sun, last character = today)</span></div>
-  <pre id="grid"></pre>
-  <div class="muted"># logged live, both done &nbsp; + backfilled (self-reported), both done<br>s study only &nbsp; w workout only &nbsp; . nothing logged</div>
-
-  <hr>
-  <div>
-    <button id="unlockBtn">[ unlock editing ]</button><button id="backfillBtn" hidden>[ import 26 Aug onward, one time ]</button><button id="exportBtn">[ download data ]</button>
+  <div class="tools">
+    <button class="btn" id="unlockBtn">Unlock editing</button>
+    <button class="btn primary" id="backfillBtn" hidden>Import 26 Aug onward (one time)</button>
+    <button class="btn" id="exportBtn">Download data</button>
+    <span class="mode" id="modeBadge"></span>
   </div>
-  <div class="muted" id="modeBadge"></div>
-  <br>
-  <div>LOG <span class="muted">(newest first)</span></div>
-  <div class="list" id="list"></div>
 
-  <hr>
-  <div class="muted">Only today can be changed. The server decides what today is (Bangkok time). Past days are locked. Each day shows whether it was logged live or backfilled.</div>
-</main>
+  <div class="notice" id="notice" hidden></div>
+
+  <h2>Calendar</h2>
+  <pre class="cal" id="grid"></pre>
+  <p class="legend"># both done &nbsp; s study only &nbsp; w workout only &nbsp; . nothing logged &nbsp; (rows are weeks, Mon to Sun; last character is today)</p>
+
+  <h2>Log</h2>
+  <ul class="list" id="list"></ul>
+
+  <p class="disclaimer">Only today can be changed. The server decides what today is (Bangkok time), and past days are locked.</p>
+</div>
 
 <script>
 (function () {
@@ -63,7 +96,7 @@
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fmt(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function parse(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
-  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function nice(k) { return parse(k).toLocaleDateString(undefined, { day: "numeric", month: "short" }); }
   function padR(s, n) { s = String(s); while (s.length < n) s += " "; return s; }
   function daysList() {
     var out = [], d = parse(state.start), end = parse(state.today);
@@ -99,69 +132,76 @@
 
   function render() {
     if (!state) return;
-    var days = daysList(), both = 0, live = 0, bf = 0, sMin = 0, wMin = 0;
+    var days = daysList(), both = 0, sMin = 0, wMin = 0, selfFirst = null, selfLast = null, selfAdded = null;
     days.forEach(function (k) {
       var e = entry(k); if (!e) return;
       if (e.study) sMin += STUDY_MIN;
       if (e.work) wMin += WORK_MIN;
-      if (e.study && e.work) { both++; if (e.source === "backfill") bf++; else live++; }
+      if (e.study && e.work) both++;
+      if (e.source === "backfill") { if (!selfFirst) selfFirst = k; selfLast = k; selfAdded = e.loggedAt; }
     });
     var st = streaks(days), pct = days.length ? Math.round(both / days.length * 100) : 0;
 
     document.getElementById("startLabel").textContent =
       parse(state.start).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+    document.getElementById("summary").innerHTML =
+      "<strong>" + both + "/" + days.length + "</strong> days done (" + pct + "%) &middot; streak <strong>" + st.cur + "</strong> (best " + st.best + ") &middot; study <strong>" +
+      (sMin / 60).toFixed(1) + " h</strong> &middot; workout <strong>" + (wMin / 60).toFixed(1) + " h</strong>";
 
-    var barLen = 24, filled = Math.round(pct / 100 * barLen);
-    var bar = "[" + new Array(filled + 1).join("#") + new Array(barLen - filled + 1).join("-") + "] " + pct + "%";
-    document.getElementById("stats").textContent = [
-      padR("days tracked", 20) + days.length,
-      padR("both done", 20) + both + " / " + days.length,
-      padR("logged live", 20) + live,
-      padR("backfilled", 20) + bf,
-      padR("current streak", 20) + st.cur,
-      padR("longest streak", 20) + st.best,
-      padR("study", 20) + (sMin / 60).toFixed(1) + " h (" + sMin + " min)",
-      padR("workout", 20) + (wMin / 60).toFixed(1) + " h (" + wMin + " min)",
-      "",
-      bar
-    ].join("\n");
+    var notice = document.getElementById("notice");
+    if (selfFirst) {
+      var addedOn = new Date(selfAdded).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+      notice.hidden = false;
+      notice.innerHTML = "<p><strong>Note:</strong> " + nice(selfFirst) + " to " + nice(selfLast) + " was entered on " + addedOn + ", after the fact (self-reported).</p>" +
+        "<p>Every day from " + addedOn + " on is logged live, with a server timestamp.</p>";
+    } else { notice.hidden = true; }
 
-    var lead = (parse(days[0]).getDay() + 6) % 7, chars = [], i, rows = [], line;
+    var lead = (parse(days[0]).getDay() + 6) % 7, chars = [], i, rows = [];
     for (i = 0; i < lead; i++) chars.push(" ");
     days.forEach(function (k) {
-      var e = entry(k), t = kind(k);
-      chars.push(t === "both" ? (e.source === "backfill" ? "+" : "#") : t === "study" ? "s" : t === "work" ? "w" : ".");
+      var t = kind(k);
+      chars.push(t === "both" ? "#" : t === "study" ? "s" : t === "work" ? "w" : ".");
     });
     for (i = 0; i < chars.length; i += 7) {
-      var dayIdx = i - lead, label = dayIdx >= 0 ? parse(days[dayIdx]).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : parse(days[0]).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-      line = padR(label, 8) + chars.slice(i, i + 7).join(" ");
-      rows.push(line);
+      var di = Math.max(0, i - lead);
+      rows.push(padR(nice(days[di]), 8) + chars.slice(i, i + 7).join(" "));
     }
     document.getElementById("grid").textContent = rows.join("\n");
 
-    var canEdit = !!pin;
-    document.getElementById("list").innerHTML = days.slice().reverse().map(function (k) {
-      var e = entry(k) || {}, d = parse(k), isToday = k === state.today;
-      var dis = (isToday && canEdit) ? "" : " disabled";
-      var how = e.loggedAt ? (e.source === "backfill" ? "backfilled" : "logged " + new Date(e.loggedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) : "nothing logged";
-      return '<div class="row"><span class="d">' + esc(k) + '</span><span class="w">' + d.toLocaleDateString(undefined, { weekday: "short" }) + '</span>' +
-        '<span class="s">' + (isToday ? "TODAY" : "locked") + '</span>' +
-        '<label><input type="checkbox" data-k="' + k + '" data-f="study"' + (e.study ? " checked" : "") + dis + '>study ' + STUDY_MIN + 'm</label>' +
-        '<label><input type="checkbox" data-k="' + k + '" data-f="work"' + (e.work ? " checked" : "") + dis + '>workout ' + WORK_MIN + 'm</label>' +
-        '<span class="muted">' + esc(how) + '</span></div>';
-    }).join("");
+    var canEdit = !!pin, list = document.getElementById("list");
+    list.innerHTML = "";
+    days.slice().reverse().forEach(function (k) {
+      var e = entry(k) || {}, isToday = k === state.today;
+      var li = document.createElement("li");
+      li.className = "row" + (isToday ? " today" : "");
+      var name = document.createElement("span");
+      name.className = "name";
+      name.textContent = k + " " + parse(k).toLocaleDateString(undefined, { weekday: "short" });
+      var lead2 = document.createElement("span"); lead2.className = "lead";
+      var boxes = document.createElement("span"); boxes.className = "boxes";
+      [["study", "study " + STUDY_MIN + "m"], ["work", "workout " + WORK_MIN + "m"]].forEach(function (f) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "box"; b.dataset.k = k; b.dataset.f = f[0];
+        b.textContent = (e[f[0]] ? "[x] " : "[ ] ") + f[1];
+        b.setAttribute("aria-pressed", e[f[0]] ? "true" : "false");
+        b.disabled = !(isToday && canEdit);
+        boxes.appendChild(b);
+      });
+      li.appendChild(name); li.appendChild(lead2); li.appendChild(boxes);
+      list.appendChild(li);
+    });
 
-    document.getElementById("unlockBtn").textContent = canEdit ? "[ lock editing ]" : "[ unlock editing ]";
-    document.getElementById("modeBadge").textContent = canEdit ? "mode: editing today" : "mode: view only";
+    document.getElementById("unlockBtn").textContent = canEdit ? "Lock editing" : "Unlock editing";
+    document.getElementById("modeBadge").textContent = canEdit ? "editing today" : "view only";
     document.getElementById("backfillBtn").hidden = !(canEdit && !state.backfillDone);
   }
 
-  document.addEventListener("change", function (e) {
+  document.getElementById("list").addEventListener("click", function (e) {
     var t = e.target;
-    if (!(t.matches && t.matches('input[type="checkbox"][data-k]'))) return;
+    if (!t.classList || !t.classList.contains("box") || t.disabled) return;
     var cur = entry(state.today) || {};
     var body = { study: !!cur.study, work: !!cur.work };
-    body[t.dataset.f] = t.checked;
+    body[t.dataset.f] = !body[t.dataset.f];
     api("/api/today", { method: "POST", body: JSON.stringify(body) })
       .then(refresh)
       .catch(function (err) {
@@ -178,7 +218,7 @@
     render();
   };
   document.getElementById("backfillBtn").onclick = function () {
-    if (!confirm("Import every day from 26 Aug up to yesterday as 'both done'? These will be marked as backfilled (self-reported) and this can only be done once.")) return;
+    if (!confirm("Import every day from 26 Aug up to yesterday as done? They will be recorded as entered today, after the fact (self-reported). This can only be done once.")) return;
     api("/api/backfill", { method: "POST", body: "{}" }).then(refresh).catch(function (err) {
       if (err.status === 401) { pin = ""; try { localStorage.removeItem(PIN_KEY); } catch (x) {} }
       alert(err.message); refresh();
